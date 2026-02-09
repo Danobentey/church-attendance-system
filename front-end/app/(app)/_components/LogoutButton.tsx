@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiFetch } from "@/app/lib/api";
+import { createClient } from "@/app/lib/supabase/client";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -11,10 +11,12 @@ export default function LogoutButton() {
   async function logout() {
     setLoading(true);
     try {
-      await apiFetch("/api/auth/logout", { method: "POST" });
-    } finally {
+      const supabase = createClient();
+      await supabase.auth.signOut();
       router.replace("/login");
       router.refresh();
+    } finally {
+      setLoading(false);
     }
   }
 

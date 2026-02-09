@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSelectedService } from "../../selected-service";
 
-export default function CheckInConfirmationPage() {
+function CheckInConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selectedService } = useSelectedService();
@@ -56,5 +56,13 @@ export default function CheckInConfirmationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckInConfirmationPage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-zinc-500">Loading…</div>}>
+      <CheckInConfirmationContent />
+    </Suspense>
   );
 }

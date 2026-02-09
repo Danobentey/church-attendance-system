@@ -2,6 +2,7 @@ import Link from "next/link";
 import LogoutButton from "./_components/LogoutButton";
 import ServiceSelect from "./_components/ServiceSelect";
 import { SelectedServiceProvider } from "./selected-service";
+import { getProfile } from "@/app/lib/auth";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -20,6 +21,8 @@ const navItems = [
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const profile = await getProfile();
+
   return (
     <SelectedServiceProvider>
       <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -63,7 +66,19 @@ export default async function AppLayout({
                     Today
                   </div>
                   <ServiceSelect />
-                  <div className="h-9 w-9 rounded-full bg-zinc-200" />
+                  <div className="flex items-center gap-2">
+                    {profile ? (
+                      <>
+                        <span className="text-xs text-zinc-600">
+                          {profile.firstName} {profile.lastName}
+                        </span>
+                        <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700">
+                          {profile.role}
+                        </span>
+                      </>
+                    ) : null}
+                    <div className="h-9 w-9 rounded-full bg-zinc-200" />
+                  </div>
                 </div>
               </div>
             </header>

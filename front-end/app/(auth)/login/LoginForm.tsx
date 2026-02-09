@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { apiFetch } from "@/app/lib/api";
+import { createClient } from "@/app/lib/supabase/client";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -19,23 +19,26 @@ export default function LoginForm() {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError("Please enter your email/username and password.");
+      setError("Please enter your email and password.");
       setLoading(false);
       return;
     }
 
     try {
-      const res = await apiFetch("/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
+      const supabase = createClient();
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
 
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        setError(data?.error ?? "Login failed.");
+      if (signInError) {
+        setError(signInError.message ?? "Login failed.");
+        setLoading(false);
+        return;
+      }
+
+      if (!data.session) {
+        setError("Login failed. Please try again.");
         setLoading(false);
         return;
       }
@@ -59,10 +62,11 @@ export default function LoginForm() {
       <form className="flex flex-col gap-4" onSubmit={onSubmit}>
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium" htmlFor="email">
-            Email / Username
+            Email
           </label>
           <input
             id="email"
+            type="email"
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -117,7 +121,10 @@ export default function LoginForm() {
         </div>
 
         {error ? (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
             {error}
           </div>
         ) : null}
@@ -131,7 +138,7 @@ export default function LoginForm() {
         </button>
 
         <div className="text-center text-xs text-zinc-500">
-          Role-based access (Admin / Usher) can be added later.
+          Admin, Secretariat, and Zonal Leaders only.
         </div>
       </form>
     </div>
