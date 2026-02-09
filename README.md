@@ -13,9 +13,11 @@ church-attendance-system/
 └── docs/        PRD, frontend handoff, and other documentation
 ```
 
-- **Backend** — Not deployed. Used for schema changes, migrations, and as the source of truth for auth/schema logic the frontend can reuse.
-- **Frontend** — Next.js on Vercel; talks to Supabase (Postgres + Auth).
+- **Backend** — Not deployed. Used for schema changes, migrations, and as the source of truth for auth/schema logic the front-end can reuse.
+- **Front-end** — Next.js app in `front-end/`; deploy to Vercel; talks to Supabase (Postgres + Auth).
 - **Database** — Supabase (PostgreSQL). Migrations are run via Drizzle from the backend.
+
+**Deployment:** See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for Vercel + Supabase deployment steps.
 
 ---
 
