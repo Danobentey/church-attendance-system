@@ -60,6 +60,42 @@ async function seed() {
     }
   }
 
+  // Seed Dan (admin) — dan@gmail.com / Dinn5678
+  const danEmail = "dan@gmail.com";
+  await db.delete(users).where(eq(users.email, danEmail));
+
+  try {
+    await createLoginableUser(danEmail, "Dinn5678", "admin", {
+      firstName: "Dan",
+      lastName: "Admin",
+      phoneNumber: "08000000001",
+    });
+    console.log("Seeded Dan admin (email: dan@gmail.com, password: Dinn5678)");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("already") || msg.includes("exists") || msg.includes("registered")) {
+      const supabase = createAdminClient();
+      const { data } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      const authUser = data.users.find((u) => u.email === danEmail);
+      if (authUser) {
+        await db.insert(users).values({
+          id: authUser.id,
+          email: danEmail,
+          phoneNumber: "08000000001",
+          firstName: "Dan",
+          lastName: "Admin",
+          role: "admin",
+          status: "active",
+        });
+        console.log("Linked existing Auth user Dan to public.users.");
+      } else {
+        console.log("Dan already exists in Auth but could not link; delete the auth user and re-run seed if needed.");
+      }
+    } else {
+      throw err;
+    }
+  }
+
   // Seed sample members (no login)
   const existingMembers = await db
     .select({ id: users.id })

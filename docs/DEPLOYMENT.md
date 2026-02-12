@@ -65,7 +65,7 @@ cd backend
 npm run db:seed
 ```
 
-Admin user: **admin@church.org** / **admin123456** (change in production).
+Admin users (change in production): **admin@church.org** / **admin123456**, or **dan@gmail.com** / **Dinn5678** (both seeded by `db:seed`).
 
 ### 1.5 Auth settings (production URL)
 

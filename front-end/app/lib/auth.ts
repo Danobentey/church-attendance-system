@@ -11,15 +11,15 @@ import { eq } from "drizzle-orm";
 export async function getProfile() {
   const supabase = await createSupabaseServerClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session?.user?.id) return null;
+  if (!user?.id) return null;
 
   const [profile] = await db
     .select()
     .from(users)
-    .where(eq(users.id, session.user.id))
+    .where(eq(users.id, user.id))
     .limit(1);
 
   return profile ?? null;

@@ -61,8 +61,8 @@ npm run db:seed
 
 ### 4. Seed admin (for login)
 
-- **Email:** `admin@church.org`
-- **Password:** `admin123456`
+- **Email:** `admin@church.org` or `dan@gmail.com`
+- **Password:** `admin123456` or `Dinn5678` respectively
 
 Use these with Supabase Auth in the frontend. Change in production.
 

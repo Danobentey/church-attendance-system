@@ -108,8 +108,8 @@ Redirect or render based on `profile.role` (admin, secretariat, zonal_leader). M
 
 After running backend migrations and seed:
 
-- **Email:** `admin@church.org`  
-- **Password:** `admin123456`  
+- **Email:** `admin@church.org` or `dan@gmail.com` (after seed)  
+- **Password:** `admin123456` or `Dinn5678` respectively  
 
 Use this to sign in via Supabase Auth in the frontend. Change the password in production.
 

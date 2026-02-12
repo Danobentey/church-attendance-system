@@ -101,7 +101,7 @@ Seeding creates default zones (e.g. Egbeda, Ikeja, Surulere) and an admin user s
    npm run db:seed
    ```
 
-3. Default admin login: **admin@church.org** / **admin123456**.  
+3. Default admin logins (after seed): **admin@church.org** / **admin123456**, or **dan@gmail.com** / **Dinn5678**.  
    Change this password in production (e.g. via Supabase Auth or a password-reset flow).
 
 **If you get `ENOTFOUND db.xxx.supabase.co` when running seed** (your machine can’t reach the direct DB host), use the **SQL Editor** instead:

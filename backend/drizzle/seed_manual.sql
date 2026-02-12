@@ -7,11 +7,11 @@ VALUES
   ('Surulere', 'SRL')
 ON CONFLICT (name) DO NOTHING;
 
--- Step 2: Admin user
--- You must create the admin in Supabase first: Authentication → Users → Add user
---   Email: admin@church.org
---   Password: (e.g. admin123456)
--- Then copy the user's UUID from the Users list and run the following, replacing YOUR_ADMIN_AUTH_UID:
+-- Step 2: Admin user(s)
+-- Create each user in Supabase first: Authentication → Users → Add user
+--   Option A: admin@church.org / admin123456
+--   Option B: dan@gmail.com / Dinn5678
+-- Then copy the user's UUID from the Users list and run the following, replacing YOUR_ADMIN_AUTH_UID and the email/name/phone as needed:
 
 /*
 DELETE FROM public.users WHERE email = 'admin@church.org';

@@ -62,6 +62,9 @@ export async function getPreferredEventIdForDate(
 /**
  * Returns events for today, creating the default service for this weekday if none exist.
  * Only creates when user can create events (admin/secretariat/zonal_leader) and no events exist.
+ *
+ * Note: This is called during render so it must NOT call revalidatePath.
+ * It inserts directly instead of going through the createEvent server action.
  */
 export async function getTodayEventsWithDefault(
   profile: Profile
@@ -71,13 +74,16 @@ export async function getTodayEventsWithDefault(
   let list = await getEventsForDate(profile, today);
   const def = getDefaultServiceForWeekday(weekday);
   if (list.length === 0 && def) {
-    const created = await createEvent({
-      name: def.name,
-      category: def.category,
-      date: today,
-    });
-    if (created.ok) {
+    try {
+      await db.insert(events).values({
+        name: def.name,
+        category: def.category,
+        date: today,
+        weekday,
+      });
       list = await getEventsForDate(profile, today);
+    } catch {
+      // Silently fail — event may already exist or user lacks permission (RLS)
     }
   }
   return list;

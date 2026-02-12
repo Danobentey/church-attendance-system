@@ -29,6 +29,17 @@ function isProtectedRoute(pathname: string) {
   return isAppPath(pathname) || isProtectedApiPath(pathname);
 }
 
+function redirectWithCookies(
+  url: URL,
+  sourceResponse: NextResponse
+): NextResponse {
+  const redirectResponse = NextResponse.redirect(url);
+  sourceResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value);
+  });
+  return redirectResponse;
+}
+
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request });
   const { supabase, response: res } = createSupabaseProxyClient(
@@ -46,19 +57,19 @@ export async function proxy(request: NextRequest) {
   if (pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = user ? "/dashboard" : "/login";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, res);
   }
 
   if (!user && isProtectedRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, res);
   }
 
   if (user && isLoginPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, res);
   }
 
   return res;
