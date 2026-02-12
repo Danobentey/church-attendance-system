@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelectedService } from "../../selected-service";
+import { useToast } from "../../_components/Toast";
+import { recordAttendance } from "@/app/lib/check-in-actions";
 import type { CheckInPerson } from "@/app/lib/check-in";
+
+function personKey(p: CheckInPerson): string {
+  return `${p.status}-${p.id}`;
+}
 
 type CheckInContentProps = {
   initialMembers: CheckInPerson[];
@@ -15,27 +20,47 @@ export default function CheckInContent({
   initialMembers,
   initialGuests,
 }: CheckInContentProps) {
-  const router = useRouter();
-  const { selectedService } = useSelectedService();
+  const { selectedService, selectedServiceId } = useSelectedService();
+  const { showToast } = useToast();
   const [tab, setTab] = useState<"Members" | "Guests">("Members");
   const [query, setQuery] = useState("");
+  const [checkedInIds, setCheckedInIds] = useState<Set<string>>(() => new Set());
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCheckedInIds(new Set());
+  }, [selectedServiceId]);
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
     const list = tab === "Members" ? initialMembers : initialGuests;
-
-    if (!q) return list;
-
-    return list.filter((p) => {
+    const notCheckedIn = list.filter((p) => !checkedInIds.has(personKey(p)));
+    const q = query.trim().toLowerCase();
+    if (!q) return notCheckedIn;
+    return notCheckedIn.filter((p) => {
       const hay = `${p.name} ${p.phone ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [query, tab, initialMembers, initialGuests]);
+  }, [query, tab, initialMembers, initialGuests, checkedInIds]);
 
-  function checkIn(person: CheckInPerson) {
-    const params = new URLSearchParams({ name: person.name, id: person.id });
-    router.push(`/check-in/confirmation?${params.toString()}`);
-  }
+  const checkIn = useCallback(
+    async (person: CheckInPerson) => {
+      if (!selectedServiceId) {
+        showToast("Select a service first.");
+        return;
+      }
+      const key = personKey(person);
+      setSubmittingId(key);
+      const result = await recordAttendance(selectedServiceId, person);
+      setSubmittingId(null);
+      if (result.ok) {
+        showToast(`${person.name} checked in`);
+        setCheckedInIds((prev) => new Set(prev).add(key));
+      } else {
+        showToast(result.error);
+      }
+    },
+    [selectedServiceId, showToast]
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,8 +76,8 @@ export default function CheckInContent({
           <div>
             <div className="text-xs text-zinc-500">Selected service</div>
             <div className="text-sm font-semibold">
-              {selectedService.name}
-              {selectedService.time ? ` (${selectedService.time})` : ""}
+              {selectedService?.name ?? "No service selected"}
+              {selectedService?.time ? ` (${selectedService.time})` : ""}
             </div>
           </div>
           <Link
@@ -139,9 +164,10 @@ export default function CheckInContent({
                 <button
                   type="button"
                   onClick={() => checkIn(p)}
-                  className="shrink-0 rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800"
+                  disabled={!selectedServiceId || submittingId === personKey(p)}
+                  className="shrink-0 rounded-md bg-zinc-900 px-3 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
                 >
-                  Check in
+                  {submittingId === personKey(p) ? "Checking in…" : "Check in"}
                 </button>
               </div>
             ))

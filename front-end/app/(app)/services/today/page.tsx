@@ -1,6 +1,13 @@
 import ServiceCards from "./service-cards";
+import CreateServiceForm from "./create-service-form";
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function ServiceTodayPage() {
+  const defaultDate = todayIsoDate();
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -18,63 +25,7 @@ export default function ServiceTodayPage() {
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4">
           <div className="mb-3 text-sm font-semibold">Create new service</div>
-          <form className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className="text-sm font-medium" htmlFor="serviceName">
-                Service name
-              </label>
-              <input
-                id="serviceName"
-                className="h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-900"
-                placeholder="Sunday Service"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium" htmlFor="date">
-                Date
-              </label>
-              <input
-                id="date"
-                className="h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-900"
-                placeholder="Auto-filled"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium" htmlFor="time">
-                Start time
-              </label>
-              <input
-                id="time"
-                className="h-10 rounded-md border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-900"
-                placeholder="08:00"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className="text-sm font-medium" htmlFor="type">
-                Service type
-              </label>
-              <select
-                id="type"
-                className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm"
-              >
-                <option>Sunday</option>
-                <option>Midweek</option>
-                <option>Special</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-2">
-              <button
-                type="button"
-                className="h-10 w-full rounded-md bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
-              >
-                Create service
-              </button>
-            </div>
-          </form>
+          <CreateServiceForm defaultDate={defaultDate} />
         </div>
       </div>
     </div>

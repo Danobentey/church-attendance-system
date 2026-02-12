@@ -1,8 +1,4 @@
-import {
-  createServerClient,
-  type CookieMethodsServer,
-  type CookieOptionsWithName,
-} from "@supabase/ssr";
+import { createSupabaseProxyClient } from "@/app/lib/supabase/proxy";
 import { NextResponse, type NextRequest } from "next/server";
 
 const appPaths = [
@@ -23,53 +19,49 @@ function isAppPath(pathname: string) {
   return appPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
-/** Options for createServerClient using getAll/setAll (non-deprecated API). */
-type ServerClientCookieOptions = {
-  cookies: CookieMethodsServer;
-  cookieOptions?: CookieOptionsWithName;
-  cookieEncoding?: "raw" | "base64url";
-};
+function isProtectedApiPath(pathname: string) {
+  return (
+    pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/")
+  );
+}
+
+function isProtectedRoute(pathname: string) {
+  return isAppPath(pathname) || isProtectedApiPath(pathname);
+}
 
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request });
-
-  const cookieMethods: CookieMethodsServer = {
-    getAll() {
-      return request.cookies.getAll();
-    },
-    setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
-      cookiesToSet.forEach(({ name, value, options }) =>
-        response.cookies.set(name, value, options)
-      );
-    },
-  };
-
-  const options: ServerClientCookieOptions = { cookies: cookieMethods };
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    options
+  const { supabase, response: res } = createSupabaseProxyClient(
+    request,
+    response
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const isLoginPage = request.nextUrl.pathname === "/login";
+  const pathname = request.nextUrl.pathname;
+  const isLoginPage = pathname === "/login";
 
-  if (!session && isAppPath(request.nextUrl.pathname)) {
+  if (pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = user ? "/dashboard" : "/login";
+    return NextResponse.redirect(url);
+  }
+
+  if (!user && isProtectedRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (session && isLoginPage) {
+  if (user && isLoginPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
-  return response;
+  return res;
 }
 
 export const config = {

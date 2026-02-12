@@ -8,17 +8,21 @@ export default function ServiceSelect() {
 
   return (
     <select
-      value={selectedServiceId}
+      value={selectedServiceId || ""}
       onChange={(e) => setSelectedServiceId(e.target.value)}
       className="h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm"
       aria-label="Selected service"
     >
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name}
-          {o.time ? ` (${o.time})` : ""}
-        </option>
-      ))}
+      {options.length === 0 ? (
+        <option value="">No service today</option>
+      ) : (
+        options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+            {o.time ? ` (${o.time})` : ""}
+          </option>
+        ))
+      )}
     </select>
   );
 }

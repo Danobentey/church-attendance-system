@@ -4,13 +4,25 @@ This guide covers deploying the Church Attendance app to **Vercel** (Next.js fro
 
 ---
 
-## 1. Supabase
+## Current setup
 
-### 1.1 Create a project (or use existing)
+**Supabase currently runs only locally** (`supabase start`). Your `.env` points at local URLs (e.g. `http://127.0.0.1:54321`, port `54322` for Postgres). That is fine for development.
 
-1. Go to [supabase.com](https://supabase.com) → Dashboard → **New project**.
+**To deploy**, you need a **hosted Supabase project** in the cloud. Create one at [supabase.com](https://supabase.com) (free tier is enough to start). The steps below assume you are creating or using that hosted project for Vercel.
+
+**→ Step-by-step for an existing project:** See **[SUPABASE_HOSTED_WALKTHROUGH.md](SUPABASE_HOSTED_WALKTHROUGH.md)** for a full walkthrough (get credentials, run migrations, optional seed).
+
+---
+
+## 1. Supabase (hosted)
+
+### 1.1 Create a hosted project
+
+1. Go to [supabase.com](https://supabase.com) → sign in → Dashboard → **New project**.
 2. Pick organization, name (e.g. `church-attendance`), database password, region.
 3. Wait for the project to be ready.
+
+You will use this project’s **URL** and **keys** in Vercel (and for migrations). Your local Supabase stays for dev only.
 
 ### 1.2 Get credentials
 
@@ -107,6 +119,8 @@ Apply these to **Production** (and **Preview** if you want staging/preview deplo
 2. Test login (e.g. with the seeded admin user if you ran `db:seed`).
 3. If you use a custom domain, add it in Vercel and update Supabase redirect URLs.
 
+**If you see "Application error: a server-side exception" after login** (e.g. on `/dashboard`), the app is failing when loading server data. Most often **`DATABASE_URL` is missing or wrong** in Vercel. Check: (1) Vercel → Project → Settings → Environment Variables: `DATABASE_URL` must be set and must be the **pooled** connection string (port **6543**). (2) Redeploy after adding or changing env vars. (3) In Vercel, open the deployment → **Functions** or **Logs** to see the actual server error message.
+
 ---
 
 ## 4. Staging vs production
@@ -116,10 +130,31 @@ Apply these to **Production** (and **Preview** if you want staging/preview deplo
 
 ---
 
-## 5. Checklist
+## 5. What’s missing before you begin
 
-- [ ] Supabase project created
-- [ ] Migrations run (`backend/drizzle/*.sql` or `npm run db:migrate` from backend)
+Nothing in the codebase blocks deployment. You only need to do the following.
+
+| Item | Status | Notes |
+|------|--------|--------|
+| **Hosted Supabase project** | You need to create one | Supabase runs locally only today. Create a project at [supabase.com](https://supabase.com) and use it for deployment. |
+| **Run migrations on hosted DB** | Do after creating the project | Use `backend` with the hosted DB URL, or run the SQL files in Supabase SQL Editor. |
+| **Vercel env vars** | Set in Vercel before first deploy | `DATABASE_URL` (pooled), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. |
+| **Root Directory = `front-end`** | Set in Vercel when importing | Required so Vercel builds the Next.js app, not the repo root. |
+| **Seed (admin user)** | Optional but recommended | Lets you log in after deploy. Run from `backend` with hosted DB + `SUPABASE_SERVICE_ROLE_KEY`; change default password in production. |
+| **Supabase Auth redirect** | Do after first deploy | In Supabase: set **Site URL** and **Redirect URLs** to your Vercel URL so login redirects work. |
+
+**Not blocking (can come after first deploy):**
+
+- **Check-in persistence** — “Check in” currently only shows a confirmation page; it does not yet insert into the `attendance` table (planned in integration step 8).
+- **Services/events** — “Create / Select Service” uses local UI state only; events are not yet loaded from or saved to the `events` table (integration step 7).
+- **Custom domain** — Add in Vercel and Supabase when you’re ready.
+
+---
+
+## 6. Checklist
+
+- [ ] Hosted Supabase project created
+- [ ] Migrations run on hosted DB (`backend/drizzle/*.sql` or `npm run db:migrate` from backend)
 - [ ] (Optional) Seed run; admin password changed for production
 - [ ] Vercel project created with **Root Directory** = `front-end`
 - [ ] `DATABASE_URL` (pooled), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` set in Vercel

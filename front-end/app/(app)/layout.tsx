@@ -1,8 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import LogoutButton from "./_components/LogoutButton";
 import ServiceSelect from "./_components/ServiceSelect";
+import { ToastProvider } from "./_components/Toast";
 import { SelectedServiceProvider } from "./selected-service";
 import { getProfile } from "@/app/lib/auth";
+import {
+  getPreferredEventIdForDate,
+  getTodayEventsWithDefault,
+} from "@/app/lib/events";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -18,13 +24,35 @@ const navItems = [
   { href: "/settings", label: "Settings" },
 ];
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default async function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const profile = await getProfile();
+  if (!profile) {
+    redirect("/login");
+  }
+  const today = todayIsoDate();
+  const todayEvents = profile ? await getTodayEventsWithDefault(profile) : [];
+  const serviceOptions = todayEvents.map((e) => ({
+    id: e.id,
+    name: e.name,
+    time: undefined as string | undefined,
+  }));
+  const preferredEventId =
+    todayEvents.length > 0
+      ? await getPreferredEventIdForDate(todayEvents, today)
+      : null;
 
   return (
-    <SelectedServiceProvider>
+    <SelectedServiceProvider
+      initialOptions={serviceOptions}
+      initialSelectedId={preferredEventId ?? undefined}
+    >
+      <ToastProvider>
       <div className="min-h-screen bg-zinc-50 text-zinc-900">
         <div className="flex min-h-screen">
           <aside className="hidden w-72 shrink-0 border-r border-zinc-200 bg-white p-4 md:block">
@@ -89,6 +117,7 @@ export default async function AppLayout({
           </div>
         </div>
       </div>
+      </ToastProvider>
     </SelectedServiceProvider>
   );
 }

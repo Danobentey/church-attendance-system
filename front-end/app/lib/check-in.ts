@@ -8,6 +8,8 @@ export type CheckInPerson = {
   name: string;
   phone?: string;
   status: "Member" | "Guest";
+  /** Required for members (their zone). Not set for guests; server uses recorder zone. */
+  zoneId?: string;
 };
 
 /**
@@ -22,6 +24,7 @@ export async function getCheckInMembers(): Promise<CheckInPerson[]> {
     name: `${m.firstName} ${m.lastName}`.trim(),
     phone: m.phoneNumber ?? undefined,
     status: "Member" as const,
+    zoneId: m.zoneId ?? undefined,
   }));
 }
 

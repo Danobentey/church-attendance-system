@@ -33,8 +33,8 @@ function CheckInConfirmationContent() {
         </div>
         <div className="text-lg font-semibold">{name} successfully checked in</div>
         <div className="mt-1 text-sm text-zinc-600">
-          Service: {selectedService.name}
-          {selectedService.time ? ` (${selectedService.time})` : ""}
+          Service: {selectedService?.name ?? "No service selected"}
+          {selectedService?.time ? ` (${selectedService.time})` : ""}
         </div>
         <div className="mt-1 text-sm text-zinc-600">
           Returning to search automatically in 2–3 seconds.

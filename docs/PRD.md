@@ -56,6 +56,7 @@ church-attendance-system/
 | Auth          | Supabase Auth                    | Both        |
 | Hosting       | Vercel                           | `frontend/` |
 | Migrations    | Drizzle Kit                      | `backend/` |
+| Route Protection | Next.js 16 Proxy (proxy.ts)   | `frontend/` |
 
 ---
 
@@ -187,6 +188,7 @@ Represents a visitor or guest who is not a registered member.
 | AUTH-1 | Users authenticate via email and password using Supabase Auth               | P0       |
 | AUTH-2 | Role-based access control enforced on all routes and API endpoints          | P0       |
 | AUTH-3 | Protected routes redirect unauthenticated users to login                    | P0       |
+| AUTH-3a | Route protection is implemented via `proxy.ts` (Next.js 16 convention, replaces legacy `middleware.ts`). The proxy refreshes the Supabase session on every request and redirects unauthenticated users to `/login`. The `(app)` layout has a defensive fallback redirect. This is optimistic protection — full authorization (role checks, zone scoping) remains in server-side data fetching. | — |
 | AUTH-4 | Admin can invite new users (secretariat, zonal leaders) via email           | P1       |
 | AUTH-5 | Password reset flow via email                                               | P1       |
 

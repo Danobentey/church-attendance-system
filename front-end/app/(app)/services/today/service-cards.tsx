@@ -8,6 +8,14 @@ export default function ServiceCards() {
   const { options, setSelectedServiceId, selectedServiceId } =
     useSelectedService();
 
+  if (options.length === 0) {
+    return (
+      <p className="text-sm text-zinc-500">
+        No services for today. Create one in the form on the right.
+      </p>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {options.map((s) => (
