@@ -1,32 +1,16 @@
 import { createSupabaseProxyClient } from "@/app/lib/supabase/proxy";
 import { NextResponse, type NextRequest } from "next/server";
 
-const appPaths = [
-  "/dashboard",
-  "/services",
-  "/check-in",
-  "/people",
-  "/members",
-  "/attendance-log",
-  "/import-export",
-  "/analytics",
-  "/reports",
-  "/follow-ups",
-  "/settings",
-];
+/**
+ * Paths that are explicitly public — no authentication required.
+ * Everything else is protected by default (denylist approach).
+ * This means new routes added to the app are automatically protected
+ * without needing to update any allowlist.
+ */
+const PUBLIC_PATHS = ["/login", "/api/auth/"];
 
-function isAppPath(pathname: string) {
-  return appPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
-
-function isProtectedApiPath(pathname: string) {
-  return (
-    pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/")
-  );
-}
-
-function isProtectedRoute(pathname: string) {
-  return isAppPath(pathname) || isProtectedApiPath(pathname);
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p));
 }
 
 function redirectWithCookies(
@@ -47,28 +31,40 @@ export async function proxy(request: NextRequest) {
     response
   );
 
+  // getUser() cryptographically verifies the JWT server-side and
+  // refreshes the session token if it has expired.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-  const isLoginPage = pathname === "/login";
+  const { pathname } = request.nextUrl;
 
+  // Root redirect: send to dashboard if authenticated, login if not
   if (pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = user ? "/dashboard" : "/login";
     return redirectWithCookies(url, res);
   }
 
-  if (!user && isProtectedRoute(pathname)) {
+  // Authenticated users visiting login are sent to the dashboard
+  if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/dashboard";
     return redirectWithCookies(url, res);
   }
 
-  if (user && isLoginPage) {
+  // Unauthenticated requests to any non-public path are blocked
+  if (!user && !isPublicPath(pathname)) {
+    // API routes get a JSON 401; page routes get a redirect to /login
+    if (pathname.startsWith("/api/")) {
+      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/login";
+    url.searchParams.set("redirectTo", pathname);
     return redirectWithCookies(url, res);
   }
 
