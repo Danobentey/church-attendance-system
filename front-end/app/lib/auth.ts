@@ -25,5 +25,11 @@ export const getProfile = cache(async function getProfile() {
     .where(eq(users.id, user.id))
     .limit(1);
 
-  return profile ?? null;
+  if (!profile) return null;
+
+  // Inactive users are denied access even if their JWT is still valid.
+  // When deactivating a user, also revoke their session via the admin API.
+  if (profile.status !== "active") return null;
+
+  return profile;
 });

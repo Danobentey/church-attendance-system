@@ -9,6 +9,12 @@ import { getProfile } from "@/app/lib/auth";
 import { getPersonById } from "@/app/lib/person";
 import { generateZoneIdentifier } from "@/app/lib/zone-identifier";
 import { logAuditEvent } from "@/app/lib/audit";
+import {
+  CreateMemberSchema,
+  CreateGuestSchema,
+  UpdatePersonSchema,
+  formatZodError,
+} from "@/app/lib/validation";
 
 export type CreateMemberInput = {
   firstName: string;
@@ -74,25 +80,28 @@ export async function createMemberAction(
       return { ok: false, error: "You must be logged in to add a member." };
     }
 
-    const firstName = input.firstName?.trim();
-    const lastName = input.lastName?.trim();
-    const phoneNumber = input.phoneNumber?.trim();
+    // Trim before validation so length checks are accurate
+    const trimmed = {
+      firstName: input.firstName?.trim() ?? "",
+      lastName: input.lastName?.trim() ?? "",
+      phoneNumber: input.phoneNumber?.trim() ?? "",
+      email: input.email?.trim() ?? "",
+      zoneId: input.zoneId?.trim() ?? "",
+      address: input.address?.trim() ?? "",
+      dateOfBirth: input.dateOfBirth?.trim() ?? "",
+      nextOfKin: input.nextOfKin?.trim() ?? "",
+    };
 
-    if (!firstName || !lastName) {
-      return { ok: false, error: "First name and last name are required." };
-    }
-    if (!phoneNumber) {
-      return { ok: false, error: "Phone number is required." };
-    }
-    if (!input.zoneId) {
-      return { ok: false, error: "Zone (Department / Unit) is required for members." };
+    const parsed = CreateMemberSchema.safeParse(trimmed);
+    if (!parsed.success) {
+      return { ok: false, error: formatZodError(parsed.error) };
     }
 
     const user = await createMember({
       ...input,
-      firstName,
-      lastName,
-      phoneNumber,
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+      phoneNumber: parsed.data.phoneNumber,
     });
     await logAuditEvent(profile.id, "member_created", { targetType: "member", targetId: user.id });
     return { ok: true, userId: user.id };
@@ -114,22 +123,29 @@ export async function insertGuestAction(
       return { ok: false, error: "You must be logged in to add a guest." };
     }
 
-    const firstName = input.firstName?.trim();
-    const lastName = input.lastName?.trim();
+    const trimmed = {
+      firstName: input.firstName?.trim() ?? "",
+      lastName: input.lastName?.trim() ?? "",
+      phoneNumber: input.phoneNumber?.trim() ?? "",
+      email: input.email?.trim() ?? "",
+      congregation: input.congregation?.trim() ?? "",
+      address: input.address?.trim() ?? "",
+    };
 
-    if (!firstName || !lastName) {
-      return { ok: false, error: "First name and last name are required." };
+    const parsed = CreateGuestSchema.safeParse(trimmed);
+    if (!parsed.success) {
+      return { ok: false, error: formatZodError(parsed.error) };
     }
 
     const [guest] = await db
       .insert(guests)
       .values({
-        firstName,
-        lastName,
-        email: input.email?.trim() || undefined,
-        phoneNumber: input.phoneNumber?.trim() || undefined,
-        congregation: input.congregation?.trim() || undefined,
-        address: input.address?.trim() || undefined,
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
+        email: parsed.data.email || undefined,
+        phoneNumber: parsed.data.phoneNumber || undefined,
+        congregation: parsed.data.congregation || undefined,
+        address: parsed.data.address || undefined,
       })
       .returning();
     await logAuditEvent(profile.id, "guest_created", { targetType: "guest", targetId: guest.id });
@@ -166,43 +182,56 @@ export async function updatePersonAction(
       return { ok: false, error: "You must be logged in to update a person." };
     }
 
+    // Validate personId is a UUID to prevent path traversal / injection
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(personId)) {
+      return { ok: false, error: "Invalid person ID." };
+    }
+
     const person = await getPersonById(profile, personId);
     if (!person) {
       return { ok: false, error: "Person not found or you do not have permission to edit them." };
     }
 
-    const firstName = input.firstName?.trim();
-    const lastName = input.lastName?.trim();
-    if (!firstName || !lastName) {
-      return { ok: false, error: "First name and last name are required." };
+    const trimmed = {
+      firstName: input.firstName?.trim() ?? "",
+      lastName: input.lastName?.trim() ?? "",
+      phoneNumber: input.phoneNumber?.trim() ?? "",
+      email: input.email?.trim() ?? "",
+      address: input.address?.trim() ?? "",
+      congregation: input.congregation?.trim() ?? "",
+      zoneId: input.zoneId?.trim() ?? "",
+    };
+
+    const parsed = UpdatePersonSchema.safeParse(trimmed);
+    if (!parsed.success) {
+      return { ok: false, error: formatZodError(parsed.error) };
     }
 
     if (person.type === "member") {
-      const phoneNumber = input.phoneNumber?.trim();
-      if (!phoneNumber) {
+      if (!parsed.data.phoneNumber) {
         return { ok: false, error: "Phone number is required for members." };
       }
       await db
         .update(users)
         .set({
-          firstName,
-          lastName,
-          phoneNumber,
-          email: input.email?.trim() || undefined,
-          address: input.address?.trim() || undefined,
-          zoneId: input.zoneId || person.zoneId || undefined,
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          phoneNumber: parsed.data.phoneNumber,
+          email: parsed.data.email || undefined,
+          address: parsed.data.address || undefined,
+          zoneId: parsed.data.zoneId || person.zoneId || undefined,
         })
         .where(eq(users.id, personId));
     } else {
       await db
         .update(guests)
         .set({
-          firstName,
-          lastName,
-          phoneNumber: input.phoneNumber?.trim() || undefined,
-          email: input.email?.trim() || undefined,
-          address: input.address?.trim() || undefined,
-          congregation: input.congregation?.trim() || undefined,
+          firstName: parsed.data.firstName,
+          lastName: parsed.data.lastName,
+          phoneNumber: parsed.data.phoneNumber || undefined,
+          email: parsed.data.email || undefined,
+          address: parsed.data.address || undefined,
+          congregation: parsed.data.congregation || undefined,
         })
         .where(eq(guests.id, personId));
     }

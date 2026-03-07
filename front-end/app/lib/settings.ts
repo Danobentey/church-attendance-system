@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/app/lib/db";
 import { churchConfig } from "@/app/lib/db/schema";
 import { getProfile } from "@/app/lib/auth";
+import { UpdateChurchConfigSchema, formatZodError } from "@/app/lib/validation";
 
 export type ChurchConfigRow = {
   id: string;
@@ -47,13 +48,18 @@ export async function updateChurchConfig(
     return { ok: false, error: "Only admin can update church config." };
   }
 
+  const parsed = UpdateChurchConfigSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: formatZodError(parsed.error) };
+  }
+
   const existing = await db.select().from(churchConfig).limit(1);
   const payload = {
-    churchName: input.churchName ?? undefined,
-    address: input.address ?? undefined,
-    contactInfo: input.contactInfo ?? undefined,
-    logoUrl: input.logoUrl ?? undefined,
-    defaultServiceName: input.defaultServiceName ?? undefined,
+    churchName: parsed.data.churchName ?? undefined,
+    address: parsed.data.address ?? undefined,
+    contactInfo: parsed.data.contactInfo ?? undefined,
+    logoUrl: parsed.data.logoUrl ?? undefined,
+    defaultServiceName: parsed.data.defaultServiceName ?? undefined,
   };
 
   if (existing.length > 0) {

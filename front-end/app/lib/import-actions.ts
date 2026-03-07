@@ -6,6 +6,7 @@ import { users, zones } from "@/app/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { getProfile } from "@/app/lib/auth";
 import { generateZoneIdentifier } from "@/app/lib/zone-identifier";
+import { MAX_CSV_BYTES } from "@/app/lib/validation";
 
 export type ImportMembersResult =
   | { ok: true; created: number; errors: string[] }
@@ -46,6 +47,14 @@ export async function importMembersAction(
     }
     if (profile.role !== "admin" && profile.role !== "secretariat") {
       return { ok: false, error: "Only admin or secretariat can import members." };
+    }
+
+    // Reject payloads that exceed the maximum allowed CSV size
+    if (Buffer.byteLength(csvText, "utf8") > MAX_CSV_BYTES) {
+      return {
+        ok: false,
+        error: `CSV file is too large. Maximum size is ${MAX_CSV_BYTES / 1024} KB.`,
+      };
     }
 
     const zoneRows = await db
