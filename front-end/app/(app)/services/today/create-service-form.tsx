@@ -18,11 +18,7 @@ export default function CreateServiceForm({ defaultDate }: CreateServiceFormProp
   const [submitting, setSubmitting] = useState(false);
 
   const category: EventCategory =
-    categoryIndex === 0
-      ? "church_service"
-      : categoryIndex === 1
-        ? "church_service"
-        : "other";
+    categoryIndex === 0 ? "church_service" : "other";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,8 +77,9 @@ export default function CreateServiceForm({ defaultDate }: CreateServiceFormProp
           className="h-10 rounded-md border border-zinc-300 bg-white px-3 text-sm"
         >
           <option value={0}>Sunday</option>
-          <option value={1}>Midweek</option>
-          <option value={2}>Special</option>
+          <option value={1}>Youth Class</option>
+          <option value={2}>Bible Study</option>
+          <option value={3}>Special</option>
         </select>
       </div>
 

@@ -20,7 +20,8 @@ const storageKey = "ca_selected_service";
 export const serviceOptions: ServiceOption[] = [
   { id: "sunday-0800", name: "Sunday Service", time: "08:00" },
   { id: "sunday-1030", name: "Sunday Service", time: "10:30" },
-  { id: "midweek-1800", name: "Midweek", time: "18:00" },
+  { id: "youth-class", name: "Youth Class" },
+  { id: "bible-study", name: "Bible Study" },
   { id: "special", name: "Special" },
 ];
 
