@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient as createSupabaseServerClient } from "@/app/lib/supabase/server";
 import { db } from "@/app/lib/db";
 import { users } from "@/app/lib/db/schema";
@@ -7,8 +8,10 @@ import { eq } from "drizzle-orm";
  * Returns the current user's profile from public.users (role, zoneId, etc.)
  * or null if not logged in or no profile row.
  * Use in Server Components or Server Actions.
+ * Wrapped with React cache() so repeated calls within the same request
+ * (e.g. layout + dashboard page) share a single Supabase + DB round-trip.
  */
-export async function getProfile() {
+export const getProfile = cache(async function getProfile() {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -23,4 +26,4 @@ export async function getProfile() {
     .limit(1);
 
   return profile ?? null;
-}
+});

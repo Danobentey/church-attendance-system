@@ -67,62 +67,54 @@ export async function getAnalyticsStats(
     baseConditions.push(eq(attendance.zoneId, zoneId));
   }
 
-  // Per-event attendance counts
-  const eventCounts = await db
-    .select({
-      eventId: attendance.eventId,
-      count: sql<number>`count(*)::int`.as("cnt"),
-    })
-    .from(attendance)
-    .innerJoin(events, eq(attendance.eventId, events.id))
-    .where(and(...baseConditions))
-    .groupBy(attendance.eventId);
-
-  const totalAttendance = eventCounts.reduce((sum, r) => sum + r.count, 0);
-  const averageAttendance =
-    eventCounts.length > 0 ? Math.round(totalAttendance / eventCounts.length) : 0;
-
-  // Previous period total
   const prevConditions = [gte(events.date, prevFrom), lte(events.date, prevTo)];
   if (isZonalLeader && zoneId) {
     prevConditions.push(eq(attendance.zoneId, zoneId));
   }
-  const prevTotalResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(attendance)
-    .innerJoin(events, eq(attendance.eventId, events.id))
-    .where(and(...prevConditions));
-  const prevTotal = prevTotalResult[0]?.count ?? 0;
-  const growthTrendPercent =
-    prevTotal > 0 ? Math.round(((totalAttendance - prevTotal) / prevTotal) * 100) : null;
-
-  // First-time visitors (guest attendance in period)
-  const guestConditions = [...baseConditions, isNotNull(attendance.guestId)];
-  const firstTimersResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(attendance)
-    .innerJoin(events, eq(attendance.eventId, events.id))
-    .where(and(...guestConditions));
-  const firstTimeVisitors = firstTimersResult[0]?.count ?? 0;
-
-  // Retention: active members who attended at least once in period / total active members
   const memberConditions = [eq(users.role, "member"), eq(users.status, "active")];
   if (isZonalLeader && zoneId) {
     memberConditions.push(eq(users.zoneId, zoneId));
   }
-  const totalMembersResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(users)
-    .where(and(...memberConditions));
-  const totalMembers = totalMembersResult[0]?.count ?? 0;
 
-  const attendedInPeriodResult = await db
-    .select({
-      distinctUsers: sql<number>`count(distinct ${attendance.userId})::int`.as("d"),
-    })
-    .from(attendance)
-    .innerJoin(events, eq(attendance.eventId, events.id))
-    .where(and(...baseConditions, isNotNull(attendance.userId)));
+  const [eventCounts, prevTotalResult, firstTimersResult, totalMembersResult, attendedInPeriodResult] =
+    await Promise.all([
+      // Per-event attendance counts (needed for average)
+      db
+        .select({ eventId: attendance.eventId, count: sql<number>`count(*)::int`.as("cnt") })
+        .from(attendance)
+        .innerJoin(events, eq(attendance.eventId, events.id))
+        .where(and(...baseConditions))
+        .groupBy(attendance.eventId),
+      // Previous period total (for growth trend)
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(attendance)
+        .innerJoin(events, eq(attendance.eventId, events.id))
+        .where(and(...prevConditions)),
+      // First-time visitors (guest attendance in period)
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(attendance)
+        .innerJoin(events, eq(attendance.eventId, events.id))
+        .where(and(...baseConditions, isNotNull(attendance.guestId))),
+      // Total active members (for retention denominator)
+      db.select({ count: sql<number>`count(*)::int` }).from(users).where(and(...memberConditions)),
+      // Members who attended at least once in period
+      db
+        .select({ distinctUsers: sql<number>`count(distinct ${attendance.userId})::int`.as("d") })
+        .from(attendance)
+        .innerJoin(events, eq(attendance.eventId, events.id))
+        .where(and(...baseConditions, isNotNull(attendance.userId))),
+    ]);
+
+  const totalAttendance = eventCounts.reduce((sum, r) => sum + r.count, 0);
+  const averageAttendance =
+    eventCounts.length > 0 ? Math.round(totalAttendance / eventCounts.length) : 0;
+  const prevTotal = prevTotalResult[0]?.count ?? 0;
+  const growthTrendPercent =
+    prevTotal > 0 ? Math.round(((totalAttendance - prevTotal) / prevTotal) * 100) : null;
+  const firstTimeVisitors = firstTimersResult[0]?.count ?? 0;
+  const totalMembers = totalMembersResult[0]?.count ?? 0;
   const attendedCount = attendedInPeriodResult[0]?.distinctUsers ?? 0;
   const retentionRatePercent =
     totalMembers > 0 ? Math.round((attendedCount / totalMembers) * 100) : null;

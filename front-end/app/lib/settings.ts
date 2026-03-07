@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/app/lib/db";
 import { churchConfig } from "@/app/lib/db/schema";
@@ -14,7 +15,9 @@ export type ChurchConfigRow = {
   defaultServiceName: string | null;
 };
 
-export async function getChurchConfig(): Promise<ChurchConfigRow | null> {
+// Cached per-request so layout calling getTodayEventsWithDefault and
+// getPreferredEventIdForDate back-to-back only hits the DB once.
+export const getChurchConfig = cache(async function getChurchConfig(): Promise<ChurchConfigRow | null> {
   const [row] = await db.select().from(churchConfig).limit(1);
   if (!row) return null;
   return {
@@ -25,7 +28,7 @@ export async function getChurchConfig(): Promise<ChurchConfigRow | null> {
     logoUrl: row.logoUrl,
     defaultServiceName: row.defaultServiceName,
   };
-}
+});
 
 export type UpdateChurchConfigInput = {
   churchName?: string | null;

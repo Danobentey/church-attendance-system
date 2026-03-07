@@ -89,17 +89,18 @@ export async function getFollowUpList(
     if (isZonalLeader && zoneId) {
       memberConditions.push(eq(users.zoneId, zoneId));
     }
-    const allMembers = await db
-      .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, phoneNumber: users.phoneNumber })
-      .from(users)
-      .where(and(...memberConditions));
-
-    const attendedInTwoWeeks = await db
-      .select({ userId: attendance.userId })
-      .from(attendance)
-      .innerJoin(events, eq(attendance.eventId, events.id))
-      .where(gte(events.date, twoWeeksIso))
-      .then((rows) => new Set(rows.map((r) => r.userId).filter(Boolean)));
+    const [allMembers, attendedRows] = await Promise.all([
+      db
+        .select({ id: users.id, firstName: users.firstName, lastName: users.lastName, phoneNumber: users.phoneNumber })
+        .from(users)
+        .where(and(...memberConditions)),
+      db
+        .select({ userId: attendance.userId })
+        .from(attendance)
+        .innerJoin(events, eq(attendance.eventId, events.id))
+        .where(gte(events.date, twoWeeksIso)),
+    ]);
+    const attendedInTwoWeeks = new Set(attendedRows.map((r) => r.userId).filter(Boolean));
 
     for (const m of allMembers) {
       if (attendedInTwoWeeks.has(m.id)) continue;

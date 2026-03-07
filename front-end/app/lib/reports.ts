@@ -71,44 +71,32 @@ export async function getMonthlyGrowthReport(
   const zoneId = profile.zoneId ?? null;
 
   const memberConditions = [eq(users.role, "member"), eq(users.status, "active")];
-  if (isZonalLeader && zoneId) {
-    memberConditions.push(eq(users.zoneId, zoneId));
-  }
-  const totalMembersResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(users)
-    .where(and(...memberConditions));
-  const totalMembers = totalMembersResult[0]?.count ?? 0;
+  if (isZonalLeader && zoneId) memberConditions.push(eq(users.zoneId, zoneId));
 
   const newMembersConditions = [
     eq(users.role, "member"),
     gte(users.createdAt, new Date(monthStart)),
     lte(users.createdAt, new Date(monthEnd + "T23:59:59.999Z")),
   ];
-  if (isZonalLeader && zoneId) {
-    newMembersConditions.push(eq(users.zoneId, zoneId));
-  }
-  const newMembersResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(users)
-    .where(and(...newMembersConditions));
-  const newMembers = newMembersResult[0]?.count ?? 0;
+  if (isZonalLeader && zoneId) newMembersConditions.push(eq(users.zoneId, zoneId));
 
   const attConditions = [gte(events.date, monthStart), lte(events.date, monthEnd)];
-  if (isZonalLeader && zoneId) {
-    attConditions.push(eq(attendance.zoneId, zoneId));
-  }
-  const attendanceTotalResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(attendance)
-    .innerJoin(events, eq(attendance.eventId, events.id))
-    .where(and(...attConditions));
-  const attendanceTotal = attendanceTotalResult[0]?.count ?? 0;
+  if (isZonalLeader && zoneId) attConditions.push(eq(attendance.zoneId, zoneId));
+
+  const [totalMembersResult, newMembersResult, attendanceTotalResult] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(users).where(and(...memberConditions)),
+    db.select({ count: sql<number>`count(*)::int` }).from(users).where(and(...newMembersConditions)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(attendance)
+      .innerJoin(events, eq(attendance.eventId, events.id))
+      .where(and(...attConditions)),
+  ]);
 
   return [
-    { metric: "Total active members", value: totalMembers },
-    { metric: "New members this month", value: newMembers },
-    { metric: "Total attendance (month)", value: attendanceTotal },
+    { metric: "Total active members", value: totalMembersResult[0]?.count ?? 0 },
+    { metric: "New members this month", value: newMembersResult[0]?.count ?? 0 },
+    { metric: "Total attendance (month)", value: attendanceTotalResult[0]?.count ?? 0 },
   ];
 }
 
