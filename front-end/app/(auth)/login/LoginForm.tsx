@@ -10,7 +10,6 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,12 +43,9 @@ export default function LoginForm() {
         return;
       }
 
+      // Record login event — userId is derived server-side from the session
       try {
-        await fetch("/api/audit/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: data.session.user.id }),
-        });
+        await fetch("/api/audit/login", { method: "POST" });
       } catch (e) {
         console.error("Failed to log login event", e);
       }
@@ -122,17 +118,8 @@ export default function LoginForm() {
             </div>
           </div>
 
-          {/* Remember me + forgot */}
-          <div className="flex items-center justify-between gap-3">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-600">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 accent-zinc-900"
-              />
-              Remember me
-            </label>
+          {/* Forgot password */}
+          <div className="flex items-center justify-end">
             <button
               type="button"
               className="text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:underline"
