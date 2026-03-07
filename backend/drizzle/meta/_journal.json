@@ -1,34 +1,41 @@
 {
-    "version": "7",
-    "dialect": "postgresql",
-    "entries": [
-        {
-            "idx": 0,
-            "version": "7",
-            "when": 1770484545592,
-            "tag": "0000_lively_zzzax",
-            "breakpoints": true
-        },
-        {
-            "idx": 1,
-            "version": "7",
-            "when": 1770486920643,
-            "tag": "0001_fair_purple_man",
-            "breakpoints": true
-        },
-        {
-            "idx": 2,
-            "version": "7",
-            "when": 1770490000000,
-            "tag": "0002_add_rls_policies",
-            "breakpoints": true
-        },
-        {
-            "idx": 3,
-            "version": "7",
-            "when": 1770586000000,
-            "tag": "0003_fix_supabase_linter_warnings",
-            "breakpoints": true
-        }
-    ]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1770484545592,
+      "tag": "0000_lively_zzzax",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770486920643,
+      "tag": "0001_fair_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770490000000,
+      "tag": "0002_add_rls_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770586000000,
+      "tag": "0003_fix_supabase_linter_warnings",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771019903925,
+      "tag": "0004_shallow_prodigy",
+      "breakpoints": true
+    }
+  ]
 }

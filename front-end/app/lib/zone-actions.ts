@@ -3,6 +3,7 @@
 import { db } from "@/app/lib/db";
 import { zones } from "@/app/lib/db/schema";
 import { getProfile } from "@/app/lib/auth";
+import { logAuditEvent } from "@/app/lib/audit";
 
 export type CreateZoneResult =
   | { ok: true; zone: { id: string; name: string } }
@@ -44,7 +45,7 @@ export async function createZoneAction(
         abbreviation: trimmedAbbr,
       })
       .returning({ id: zones.id, name: zones.name });
-
+    await logAuditEvent(profile.id, "zone_created", { targetType: "zone", targetId: zone.id });
     return { ok: true, zone: { id: zone.id, name: zone.name } };
   } catch (e) {
     const message =

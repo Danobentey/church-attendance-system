@@ -24,3 +24,6 @@ Thumbs.db
 # Next.js
 .next/
 out/
+
+# Local credentials file
+CREDENTIALS.md

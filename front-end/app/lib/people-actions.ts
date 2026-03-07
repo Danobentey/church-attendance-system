@@ -1,10 +1,14 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/app/lib/db";
 import { users, guests } from "@/app/lib/db/schema";
 import { getProfile } from "@/app/lib/auth";
+import { getPersonById } from "@/app/lib/person";
 import { generateZoneIdentifier } from "@/app/lib/zone-identifier";
+import { logAuditEvent } from "@/app/lib/audit";
 
 export type CreateMemberInput = {
   firstName: string;
@@ -90,7 +94,7 @@ export async function createMemberAction(
       lastName,
       phoneNumber,
     });
-
+    await logAuditEvent(profile.id, "member_created", { targetType: "member", targetId: user.id });
     return { ok: true, userId: user.id };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to create member.";
@@ -128,10 +132,88 @@ export async function insertGuestAction(
         address: input.address?.trim() || undefined,
       })
       .returning();
-
+    await logAuditEvent(profile.id, "guest_created", { targetType: "guest", targetId: guest.id });
     return { ok: true, guestId: guest.id };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to create guest.";
+    return { ok: false, error: message };
+  }
+}
+
+export type UpdatePersonInput = {
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  congregation?: string;
+  zoneId?: string;
+};
+
+export type UpdatePersonResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Updates a person (member or guest). Admin can edit anyone; secretariat can edit anyone;
+ * zonal_leader can edit own-zone members and any guest.
+ */
+export async function updatePersonAction(
+  personId: string,
+  input: UpdatePersonInput
+): Promise<UpdatePersonResult> {
+  try {
+    const profile = await getProfile();
+    if (!profile) {
+      return { ok: false, error: "You must be logged in to update a person." };
+    }
+
+    const person = await getPersonById(profile, personId);
+    if (!person) {
+      return { ok: false, error: "Person not found or you do not have permission to edit them." };
+    }
+
+    const firstName = input.firstName?.trim();
+    const lastName = input.lastName?.trim();
+    if (!firstName || !lastName) {
+      return { ok: false, error: "First name and last name are required." };
+    }
+
+    if (person.type === "member") {
+      const phoneNumber = input.phoneNumber?.trim();
+      if (!phoneNumber) {
+        return { ok: false, error: "Phone number is required for members." };
+      }
+      await db
+        .update(users)
+        .set({
+          firstName,
+          lastName,
+          phoneNumber,
+          email: input.email?.trim() || undefined,
+          address: input.address?.trim() || undefined,
+          zoneId: input.zoneId || person.zoneId || undefined,
+        })
+        .where(eq(users.id, personId));
+    } else {
+      await db
+        .update(guests)
+        .set({
+          firstName,
+          lastName,
+          phoneNumber: input.phoneNumber?.trim() || undefined,
+          email: input.email?.trim() || undefined,
+          address: input.address?.trim() || undefined,
+          congregation: input.congregation?.trim() || undefined,
+        })
+        .where(eq(guests.id, personId));
+    }
+
+    await logAuditEvent(profile.id, "member_updated", { targetType: person.type, targetId: personId });
+    revalidatePath(`/people/${personId}`);
+    revalidatePath(`/people/${personId}/edit`);
+    revalidatePath("/members");
+    return { ok: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to update person.";
     return { ok: false, error: message };
   }
 }

@@ -1,10 +1,11 @@
 "use server";
 
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/app/lib/db";
 import { events } from "@/app/lib/db/schema";
 import { getProfile } from "@/app/lib/auth";
+import { logAuditEvent } from "@/app/lib/audit";
 
 type Profile = Awaited<ReturnType<typeof getProfile>>;
 
@@ -41,13 +42,21 @@ function getDefaultServiceForWeekday(
 
 /**
  * Given today's events and date, returns the event id to auto-select:
- * prefers the event whose name matches the default service for that weekday.
+ * prefers church_config.defaultServiceName if set and matching, else default for weekday.
  */
 export async function getPreferredEventIdForDate(
   eventsForDate: EventForList[],
   dateIso: string
 ): Promise<string | null> {
   if (eventsForDate.length === 0) return null;
+  const { getDefaultServiceName } = await import("@/app/lib/settings");
+  const configDefault = await getDefaultServiceName();
+  if (configDefault?.trim()) {
+    const match = eventsForDate.find(
+      (e) => e.name.toLowerCase().trim() === configDefault.toLowerCase().trim()
+    );
+    if (match) return match.id;
+  }
   const weekday = new Date(dateIso + "Z").getUTCDay();
   const def = getDefaultServiceForWeekday(weekday);
   if (def) {
@@ -60,11 +69,9 @@ export async function getPreferredEventIdForDate(
 }
 
 /**
- * Returns events for today, creating the default service for this weekday if none exist.
- * Only creates when user can create events (admin/secretariat/zonal_leader) and no events exist.
- *
+ * Returns events for today, creating the default service if none exist.
+ * Uses church_config.defaultServiceName if set, else weekday default.
  * Note: This is called during render so it must NOT call revalidatePath.
- * It inserts directly instead of going through the createEvent server action.
  */
 export async function getTodayEventsWithDefault(
   profile: Profile
@@ -72,18 +79,24 @@ export async function getTodayEventsWithDefault(
   const today = new Date().toISOString().slice(0, 10);
   const weekday = new Date(today + "Z").getUTCDay();
   let list = await getEventsForDate(profile, today);
-  const def = getDefaultServiceForWeekday(weekday);
-  if (list.length === 0 && def) {
-    try {
-      await db.insert(events).values({
-        name: def.name,
-        category: def.category,
-        date: today,
-        weekday,
-      });
-      list = await getEventsForDate(profile, today);
-    } catch {
-      // Silently fail — event may already exist or user lacks permission (RLS)
+  if (list.length === 0) {
+    const { getDefaultServiceName } = await import("@/app/lib/settings");
+    const configDefault = await getDefaultServiceName();
+    const def = getDefaultServiceForWeekday(weekday);
+    const nameToCreate = configDefault?.trim() || def?.name;
+    const categoryToUse = configDefault?.trim() ? "church_service" : (def?.category ?? "church_service");
+    if (nameToCreate) {
+      try {
+        await db.insert(events).values({
+          name: nameToCreate,
+          category: categoryToUse,
+          date: today,
+          weekday,
+        });
+        list = await getEventsForDate(profile, today);
+      } catch {
+        // Silently fail
+      }
     }
   }
   return list;
@@ -194,8 +207,20 @@ export async function createEvent(
   if (!event) {
     return { ok: false, error: "Failed to create service." };
   }
-
+  await logAuditEvent(profile.id, "event_created", { targetType: "event", targetId: event.id });
   revalidatePath("/services/today");
   revalidatePath("/");
+  revalidatePath("/settings/services-setup");
   return { ok: true, eventId: event.id };
+}
+
+/**
+ * Returns distinct event names (for services setup). Not profile-scoped.
+ */
+export async function getDistinctEventNames(): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ name: events.name })
+    .from(events)
+    .orderBy(events.name);
+  return rows.map((r) => r.name ?? "").filter(Boolean);
 }

@@ -1,18 +1,51 @@
-export default function ReportsPage() {
-  const reportTypes = [
-    {
-      title: "Weekly attendance",
-      description: "Summary of attendance for the week.",
-    },
-    {
-      title: "Monthly growth",
-      description: "Growth trends and retention.",
-    },
-    {
-      title: "Departmental attendance",
-      description: "Attendance broken down by department/unit.",
-    },
-  ];
+import { getProfile } from "@/app/lib/auth";
+import {
+  getWeeklyAttendanceReport,
+  getMonthlyGrowthReport,
+  getDepartmentalReport,
+} from "@/app/lib/reports";
+import ReportsContent from "./_components/ReportsContent";
+
+function getWeekStart(d: Date): string {
+  const day = d.getDay();
+  const diff = d.getDate() - day;
+  const monday = new Date(d);
+  monday.setDate(diff);
+  return monday.toISOString().slice(0, 10);
+}
+
+type Props = {
+  searchParams: Promise<{
+    weeklyWeek?: string;
+    monthlyMonth?: string;
+    deptFrom?: string;
+    deptTo?: string;
+  }>;
+};
+
+export default async function ReportsPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const profile = await getProfile();
+
+  const defaultWeekStart = getWeekStart(new Date());
+  const defaultMonth = new Date().toISOString().slice(0, 7);
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date();
+  monthAgo.setDate(monthAgo.getDate() - 30);
+  const defaultDeptFrom = monthAgo.toISOString().slice(0, 10);
+
+  const weeklyWeek = params.weeklyWeek ?? defaultWeekStart;
+  const monthlyMonth = params.monthlyMonth ?? defaultMonth;
+  const deptFrom = params.deptFrom ?? defaultDeptFrom;
+  const deptTo = params.deptTo ?? today;
+
+  const [weeklyData, monthlyData, departmentalData] = profile
+    ? await Promise.all([
+        getWeeklyAttendanceReport(profile, weeklyWeek),
+        getMonthlyGrowthReport(profile, monthlyMonth),
+        getDepartmentalReport(profile, deptFrom, deptTo),
+      ])
+    : [[], [], []];
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,32 +56,19 @@ export default function ReportsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {reportTypes.map((r) => (
-          <div key={r.title} className="rounded-xl border border-zinc-200 bg-white p-4">
-            <div className="text-sm font-semibold">{r.title}</div>
-            <div className="mt-1 text-sm text-zinc-600">{r.description}</div>
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                className="h-10 flex-1 rounded-md bg-zinc-900 px-4 text-sm font-semibold text-white hover:bg-zinc-800"
-              >
-                Generate
-              </button>
-              <button
-                type="button"
-                className="h-10 rounded-md border border-zinc-200 bg-white px-4 text-sm font-semibold hover:bg-zinc-50"
-              >
-                Export
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="text-xs text-zinc-500">
-        One-click report generation + PDF/Excel export will be added later.
-      </div>
+      <ReportsContent
+        weeklyWeek={weeklyWeek}
+        monthlyMonth={monthlyMonth}
+        deptFrom={deptFrom}
+        deptTo={deptTo}
+        defaultWeekStart={defaultWeekStart}
+        defaultMonth={defaultMonth}
+        defaultDeptFrom={defaultDeptFrom}
+        today={today}
+        weeklyData={weeklyData}
+        monthlyData={monthlyData}
+        departmentalData={departmentalData}
+      />
     </div>
   );
 }

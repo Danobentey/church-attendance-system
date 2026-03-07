@@ -43,6 +43,17 @@ export default function LoginForm() {
         return;
       }
 
+      // record login event on server
+      try {
+        await fetch("/api/audit/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: data.session.user.id }),
+        });
+      } catch (e) {
+        console.error("Failed to log login event", e);
+      }
+
       router.replace("/dashboard");
       router.refresh();
     } catch {

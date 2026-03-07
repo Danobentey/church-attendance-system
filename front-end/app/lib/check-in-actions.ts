@@ -3,6 +3,7 @@
 import { db } from "@/app/lib/db";
 import { attendance, zones } from "@/app/lib/db/schema";
 import { getProfile } from "@/app/lib/auth";
+import { logAuditEvent } from "@/app/lib/audit";
 import type { CheckInPerson } from "@/app/lib/check-in";
 
 export type RecordAttendanceResult =
@@ -50,6 +51,10 @@ export async function recordAttendance(
       guestId: guestId ?? undefined,
       zoneId,
       recordedBy: profile.id,
+    });
+    await logAuditEvent(profile.id, "check_in", {
+      targetType: person.status === "Member" ? "member" : "guest",
+      targetId: person.id,
     });
     return { ok: true };
   } catch (e) {

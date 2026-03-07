@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getProfile } from "@/app/lib/auth";
+import { getPersonById } from "@/app/lib/person";
 
 export default async function PersonProfilePage({
   params,
@@ -6,16 +9,24 @@ export default async function PersonProfilePage({
   params: Promise<{ personId: string }>;
 }) {
   const { personId } = await params;
+  const profile = await getProfile();
+  const person = profile ? await getPersonById(profile, personId) : null;
 
-  const name = `Person ${personId}`;
+  if (!person) {
+    notFound();
+  }
+
+  const contactDisplay = [person.phoneNumber, person.email].filter(Boolean).join(" • ") || "—";
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <div className="text-xs text-zinc-500">Person Profile</div>
-        <h1 className="text-2xl font-semibold">{name}</h1>
+        <h1 className="text-2xl font-semibold">{person.fullName}</h1>
         <div className="mt-1 text-sm text-zinc-600">
-          Status: <span className="font-medium">Member</span> • Contact: —
+          Status: <span className="font-medium">{person.type === "member" ? (person.status ?? "Active") : "Guest"}</span>
+          {" • "}
+          Contact: {contactDisplay}
         </div>
       </div>
 
@@ -24,8 +35,10 @@ export default async function PersonProfilePage({
           <div className="flex items-center gap-2">
             <div className="h-12 w-12 rounded-full bg-zinc-200" />
             <div>
-              <div className="text-sm font-semibold">{name}</div>
-              <div className="text-xs text-zinc-500">ID: {personId}</div>
+              <div className="text-sm font-semibold">{person.fullName}</div>
+              <div className="text-xs text-zinc-500">
+                {person.zoneIdentifier ? `${person.zoneIdentifier}` : `ID: ${personId}`}
+              </div>
             </div>
           </div>
 
@@ -54,25 +67,27 @@ export default async function PersonProfilePage({
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-zinc-200 p-3">
             <div className="text-xs text-zinc-500">Phone</div>
-            <div className="text-sm font-semibold">—</div>
+            <div className="text-sm font-semibold">{person.phoneNumber ?? "—"}</div>
           </div>
           <div className="rounded-lg border border-zinc-200 p-3">
             <div className="text-xs text-zinc-500">Email</div>
-            <div className="text-sm font-semibold">—</div>
+            <div className="text-sm font-semibold">{person.email ?? "—"}</div>
           </div>
           <div className="rounded-lg border border-zinc-200 p-3">
             <div className="text-xs text-zinc-500">Department / Unit</div>
-            <div className="text-sm font-semibold">—</div>
+            <div className="text-sm font-semibold">{person.zoneName ?? "—"}</div>
           </div>
           <div className="rounded-lg border border-zinc-200 p-3">
             <div className="text-xs text-zinc-500">Last attendance</div>
-            <div className="text-sm font-semibold">—</div>
+            <div className="text-sm font-semibold">{person.lastAttendance ?? "—"}</div>
           </div>
+          {person.type === "guest" && person.congregation ? (
+            <div className="rounded-lg border border-zinc-200 p-3 sm:col-span-2">
+              <div className="text-xs text-zinc-500">Congregation</div>
+              <div className="text-sm font-semibold">{person.congregation}</div>
+            </div>
+          ) : null}
         </div>
-      </div>
-
-      <div className="text-xs text-zinc-500">
-        This is a scaffolded profile page. Data wiring will be added later.
       </div>
     </div>
   );

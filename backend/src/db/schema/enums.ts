@@ -20,3 +20,14 @@ export const attendanceTypeEnum = pgEnum("attendance_type", [
   "in_person",
   "online",
 ]);
+
+export const auditActionEnum = pgEnum("audit_action", [
+  "login",
+  "check_in",
+  "member_created",
+  "member_updated",
+  "guest_created",
+  "zone_created",
+  "event_created",
+  "export",
+]);

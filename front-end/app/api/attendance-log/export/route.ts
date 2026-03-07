@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getProfile } from "@/app/lib/auth";
 import { getAttendanceLog } from "@/app/lib/attendance-log";
+import { logAuditEvent } from "@/app/lib/audit";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     search: search || null,
   });
 
+  await logAuditEvent(profile.id, "export", { targetType: "attendance_log", metadata: { dateFrom, dateTo } });
   const header = "Name,Type,Service,Date,Check-in time\n";
   const body = rows
     .map(
