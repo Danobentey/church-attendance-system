@@ -69,12 +69,13 @@ export function SelectedServiceProvider({
     }
   });
 
-  // When server sends a new preferred id (e.g. after creating default event), sync selection
-  useEffect(() => {
-    if (autoSelectId && autoSelectId !== selectedServiceId) {
-      setSelectedServiceId(autoSelectId);
-    }
-  }, [autoSelectId]); // eslint-disable-line react-hooks/exhaustive-deps -- only when server preference changes
+  // When server sends a new preferred id, sync during render (not in an effect)
+  // to avoid the "setState inside useEffect" cascading render warning.
+  const [prevAutoSelectId, setPrevAutoSelectId] = useState(autoSelectId);
+  if (prevAutoSelectId !== autoSelectId && autoSelectId) {
+    setPrevAutoSelectId(autoSelectId);
+    setSelectedServiceId(autoSelectId);
+  }
 
   // When initialOptions change (e.g. after nav), ensure selected id is in the new list
   const resolvedSelectedId = useMemo(() => {
