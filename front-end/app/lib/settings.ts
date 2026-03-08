@@ -1,7 +1,8 @@
 "use server";
 
 import { cache } from "react";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/app/lib/db";
 import { churchConfig } from "@/app/lib/db/schema";
 import { getProfile } from "@/app/lib/auth";
@@ -14,6 +15,7 @@ export type ChurchConfigRow = {
   contactInfo: string | null;
   logoUrl: string | null;
   defaultServiceName: string | null;
+  recurringServiceNames: string[];
 };
 
 // Cached per-request so layout calling getTodayEventsWithDefault and
@@ -28,6 +30,7 @@ export const getChurchConfig = cache(async function getChurchConfig(): Promise<C
     contactInfo: row.contactInfo,
     logoUrl: row.logoUrl,
     defaultServiceName: row.defaultServiceName,
+    recurringServiceNames: row.recurringServiceNames ?? [],
   };
 });
 
@@ -73,4 +76,50 @@ export async function updateChurchConfig(
 export async function getDefaultServiceName(): Promise<string | null> {
   const config = await getChurchConfig();
   return config?.defaultServiceName ?? null;
+}
+
+export async function addRecurringServiceName(
+  name: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const profile = await getProfile();
+  if (!profile) return { ok: false, error: "Not authenticated." };
+  if (profile.role !== "admin") return { ok: false, error: "Only admin can manage recurring services." };
+
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: "Service name is required." };
+
+  const existing = await db.select().from(churchConfig).limit(1);
+  if (existing.length === 0) {
+    await db.insert(churchConfig).values({ recurringServiceNames: [trimmed] });
+  } else {
+    const current = existing[0].recurringServiceNames ?? [];
+    if (current.map((n) => n.toLowerCase()).includes(trimmed.toLowerCase())) {
+      return { ok: false, error: `"${trimmed}" is already in the list.` };
+    }
+    await db
+      .update(churchConfig)
+      .set({ recurringServiceNames: sql`array_append(${churchConfig.recurringServiceNames}, ${trimmed})` })
+      .where(eq(churchConfig.id, existing[0].id));
+  }
+  revalidatePath("/settings/services-setup");
+  return { ok: true };
+}
+
+export async function removeRecurringServiceName(
+  name: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const profile = await getProfile();
+  if (!profile) return { ok: false, error: "Not authenticated." };
+  if (profile.role !== "admin") return { ok: false, error: "Only admin can manage recurring services." };
+
+  const existing = await db.select().from(churchConfig).limit(1);
+  if (existing.length === 0) return { ok: true };
+
+  await db
+    .update(churchConfig)
+    .set({ recurringServiceNames: sql`array_remove(${churchConfig.recurringServiceNames}, ${name})` })
+    .where(eq(churchConfig.id, existing[0].id));
+
+  revalidatePath("/settings/services-setup");
+  return { ok: true };
 }

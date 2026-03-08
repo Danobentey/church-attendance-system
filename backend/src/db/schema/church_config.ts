@@ -7,6 +7,7 @@ export const churchConfig = pgTable("church_config", {
   contactInfo: text("contact_info"),
   logoUrl: text("logo_url"),
   defaultServiceName: varchar("default_service_name", { length: 255 }),
+  recurringServiceNames: text("recurring_service_names").array(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

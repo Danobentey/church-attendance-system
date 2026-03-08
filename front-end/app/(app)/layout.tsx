@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Image from "next/image";
 import LogoutButton from "./_components/LogoutButton";
 import ServiceSelect from "./_components/ServiceSelect";
 import SideNav from "./_components/SideNav";
@@ -70,8 +71,14 @@ export default async function AppLayout({
             <aside className="hidden w-64 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex">
               <div className="border-b border-zinc-100 px-4 py-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 text-sm font-bold text-white shadow-sm">
-                    C
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-zinc-100">
+                    <Image
+                      src="/Church_Logo.jpeg"
+                      alt="Church of Christ Ikeja"
+                      fill
+                      className="object-cover"
+                      priority
+                    />
                   </div>
                   <div>
                     <div className="text-sm font-semibold leading-tight">COC Ikeja</div>
@@ -95,8 +102,14 @@ export default async function AppLayout({
                 <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
                   {/* Mobile branding */}
                   <div className="flex items-center gap-2.5 md:hidden">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-xs font-bold text-white">
-                      C
+                    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 ring-zinc-100">
+                      <Image
+                        src="/Church_Logo.jpeg"
+                        alt="Church of Christ Ikeja"
+                        fill
+                        className="object-cover"
+                        priority
+                      />
                     </div>
                     <span className="text-sm font-semibold">COC Ikeja</span>
                   </div>

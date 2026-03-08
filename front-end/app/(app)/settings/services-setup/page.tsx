@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { getChurchConfig } from "@/app/lib/settings";
-import { getDistinctEventNames } from "@/app/lib/events";
 import ServicesSetupForm from "./_components/ServicesSetupForm";
 
 export default async function ServicesSetupPage() {
-  const [config, eventNames] = await Promise.all([
-    getChurchConfig(),
-    getDistinctEventNames(),
-  ]);
+  const config = await getChurchConfig();
+  const recurringServiceNames = config?.recurringServiceNames ?? [];
   const defaultServiceName = config?.defaultServiceName ?? null;
 
   return (
@@ -26,7 +23,7 @@ export default async function ServicesSetupPage() {
       </div>
 
       <ServicesSetupForm
-        serviceNames={eventNames}
+        serviceNames={recurringServiceNames}
         defaultServiceName={defaultServiceName}
       />
     </div>

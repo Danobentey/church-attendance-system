@@ -1,0 +1,1 @@
+ALTER TABLE "church_config" ADD COLUMN "recurring_service_names" text[];

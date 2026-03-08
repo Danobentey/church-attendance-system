@@ -69,8 +69,8 @@ export async function getPreferredEventIdForDate(
 }
 
 /**
- * Returns events for today, creating the default service if none exist.
- * Uses church_config.defaultServiceName if set, else weekday default.
+ * Returns events for today, auto-creating from recurring services config if none exist.
+ * Falls back to weekday defaults if no recurring services are configured.
  * Note: This is called during render so it must NOT call revalidatePath.
  */
 export async function getTodayEventsWithDefault(
@@ -80,22 +80,39 @@ export async function getTodayEventsWithDefault(
   const weekday = new Date(today + "Z").getUTCDay();
   let list = await getEventsForDate(profile, today);
   if (list.length === 0) {
-    const { getDefaultServiceName } = await import("@/app/lib/settings");
-    const configDefault = await getDefaultServiceName();
-    const def = getDefaultServiceForWeekday(weekday);
-    const nameToCreate = configDefault?.trim() || def?.name;
-    const categoryToUse = configDefault?.trim() ? "church_service" : (def?.category ?? "church_service");
-    if (nameToCreate) {
+    const { getChurchConfig } = await import("@/app/lib/settings");
+    const config = await getChurchConfig();
+    const recurringNames = config?.recurringServiceNames ?? [];
+
+    if (recurringNames.length > 0) {
       try {
-        await db.insert(events).values({
-          name: nameToCreate,
-          category: categoryToUse,
-          date: today,
-          weekday,
-        });
+        await db.insert(events).values(
+          recurringNames.map((name) => ({
+            name,
+            category: "church_service" as EventCategory,
+            date: today,
+            weekday,
+          }))
+        );
         list = await getEventsForDate(profile, today);
       } catch {
         // Silently fail
+      }
+    } else {
+      // Fall back to weekday defaults if no recurring services configured
+      const def = getDefaultServiceForWeekday(weekday);
+      if (def) {
+        try {
+          await db.insert(events).values({
+            name: def.name,
+            category: def.category,
+            date: today,
+            weekday,
+          });
+          list = await getEventsForDate(profile, today);
+        } catch {
+          // Silently fail
+        }
       }
     }
   }

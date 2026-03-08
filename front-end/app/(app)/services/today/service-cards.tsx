@@ -10,9 +10,20 @@ export default function ServiceCards() {
 
   if (options.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
-        No services for today. Create one in the form on the right.
-      </p>
+      <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center">
+        <p className="text-sm text-zinc-500">No services scheduled for today.</p>
+        <p className="mt-1 text-xs text-zinc-400">
+          Add recurring services in{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/settings/services-setup")}
+            className="underline underline-offset-2 hover:text-zinc-600"
+          >
+            Services Setup
+          </button>{" "}
+          to auto-create them each day.
+        </p>
+      </div>
     );
   }
 

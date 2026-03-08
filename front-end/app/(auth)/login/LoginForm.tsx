@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import { createClient } from "@/app/lib/supabase/client";
 import { Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
 
@@ -64,8 +65,14 @@ export default function LoginForm() {
       <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-xl shadow-zinc-100">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 shadow-md">
-            <span className="text-xl font-black text-white">C</span>
+          <div className="relative mx-auto mb-4 h-20 w-20 overflow-hidden rounded-full ring-4 ring-zinc-100 shadow-md">
+            <Image
+              src="/Church_Logo.jpeg"
+              alt="Church of Christ Ikeja"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-zinc-900">COC Ikeja</h1>
           <p className="mt-1 text-sm text-zinc-500">Staff portal — sign in to continue</p>
