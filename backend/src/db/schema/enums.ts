@@ -30,4 +30,6 @@ export const auditActionEnum = pgEnum("audit_action", [
   "zone_created",
   "event_created",
   "export",
+  "user_created",
+  "user_deactivated",
 ]);

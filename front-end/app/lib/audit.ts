@@ -13,7 +13,9 @@ export type AuditAction =
   | "guest_created"
   | "zone_created"
   | "event_created"
-  | "export";
+  | "export"
+  | "user_created"
+  | "user_deactivated";
 
 export async function logAuditEvent(
   userId: string | null,

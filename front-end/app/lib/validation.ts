@@ -90,6 +90,27 @@ export const UpdateChurchConfigSchema = z.object({
   defaultServiceName: optionalString(200),
 });
 
+// ── Loginable user schema ────────────────────────────────────────────────────
+
+export const CreateLoginableUserSchema = z.object({
+  firstName: nonEmptyString(100, "First name"),
+  lastName: nonEmptyString(100, "Last name"),
+  email: z.string().email("Invalid email address").max(255, "Email must be 255 characters or less"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be 72 characters or less"),
+  phoneNumber: z
+    .string()
+    .min(7, "Phone number must be at least 7 characters")
+    .max(20, "Phone number must be 20 characters or less")
+    .regex(/^[\d\s+\-()/]+$/, "Phone number contains invalid characters"),
+  role: z.enum(["admin", "secretariat", "zonal_leader"] as const, {
+    error: "Role must be admin, secretariat, or zonal_leader",
+  }),
+  zoneId: z.string().uuid("Invalid zone").optional().or(z.literal("")),
+});
+
 // ── Import schema ────────────────────────────────────────────────────────────
 
 /** Max CSV size: 500 KB (roughly ~5,000 members at ~100 bytes each with headroom). */

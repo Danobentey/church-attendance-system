@@ -80,6 +80,8 @@ export default async function AuditLogPage({ searchParams }: Props) {
               <option value="zone_created">Zone created</option>
               <option value="event_created">Event created</option>
               <option value="export">Export</option>
+              <option value="user_created">User created</option>
+              <option value="user_deactivated">User deactivated</option>
             </select>
           </div>
           <div className="flex items-end">

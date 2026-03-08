@@ -5,6 +5,7 @@ import {
   DatabaseBackup,
   ScrollText,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 
 const settingsItems = [
@@ -23,6 +24,14 @@ const settingsItems = [
     icon: CalendarClock,
     iconBg: "bg-purple-50",
     iconColor: "text-purple-600",
+  },
+  {
+    href: "/settings/users",
+    title: "User Management",
+    description: "Create and manage admins, secretariats, and zonal leaders",
+    icon: ShieldCheck,
+    iconBg: "bg-rose-50",
+    iconColor: "text-rose-600",
   },
   {
     href: "/settings/backup-export",
@@ -69,9 +78,6 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      <p className="text-xs text-zinc-400">
-        Access control will be enforced when authentication is wired.
-      </p>
     </div>
   );
 }

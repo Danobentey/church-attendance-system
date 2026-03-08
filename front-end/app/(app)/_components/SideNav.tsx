@@ -14,6 +14,7 @@ import {
   FileText,
   BellRing,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 
 const navGroups = [
@@ -45,7 +46,8 @@ const navGroups = [
   {
     label: "Admin",
     items: [
-      { href: "/settings", label: "Settings", icon: Settings },
+      { href: "/settings", label: "Settings", icon: Settings, exact: true },
+      { href: "/settings/users", label: "User Management", icon: ShieldCheck },
     ],
   },
 ];
@@ -61,9 +63,10 @@ export default function SideNav() {
             {group.label}
           </div>
           {group.items.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const active = "exact" in item && item.exact
+              ? pathname === item.href
+              : pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
